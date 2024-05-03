@@ -1,4 +1,4 @@
-# Установка необходимых для работы программы модулей
+# Установка необходимых для работы программы библиотек и модулей
 !pip install pytelegrambotapi -q
 !pip install diffusers -q
 !pip install deep-translator -q
@@ -57,7 +57,7 @@ def send_request(message):
 from diffusers import DiffusionPipeline
 import torch
 
-# Кисточка
+# Создание картинки
 def send_photo(message):
     base = DiffusionPipeline.from_pretrained(
         "stabilityai/stable-diffusion-xl-base-1.0", torch_dtype=torch.float16, variant="fp16", use_safetensors=True)
