@@ -1,4 +1,4 @@
-# Установка необходимых для работы программы модулей
+# Установка необходимых для работы программы модулей-
 # !pip install pytelegrambotapi -q
 # !pip install g4f -q
 # !pip install diffusers -q
