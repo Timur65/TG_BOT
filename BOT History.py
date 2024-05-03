@@ -1,57 +1,63 @@
-# Установка необходимых для работы программы модулей-----
-# !pip install pytelegrambotapi -q
-# !pip install g4f -q
-# !pip install diffusers -q
-# !pip install deep-translator -q
+# Установка необходимых для работы программы модулей
+!pip install pytelegrambotapi -q
+!pip install diffusers -q
+!pip install deep-translator -q
+
+!pip install -U g4f --quiet
+!pip install browser-cookie3 --quiet
+!pip install aiohttp_socks --quiet
 
 
 #Подключаем бота
 import telebot;
 bot = telebot.TeleBot('7140368368:AAGPBu3w6v6ZLAZiauYsBHFve8ya2A-1AAU'); #Вводим наш токен(бота)
+from telebot import types
+from deep_translator import GoogleTranslator
 
 # Наш мозг - или же основная мощь программы искуственный интелект на основе GPT4
 
 import g4f
-from g4f.Provider import Bing, OpenaiChat, Liaobots, BaseProvider
-from g4f.cookies import set_cookies
+from g4f.Provider import (
+    GeekGpt,
+    Liaobots,
+    Phind,
+    Raycast,
+    RetryProvider)
 from g4f.client import Client
-from deep_translator import GoogleTranslator
 import nest_asyncio
-
 nest_asyncio.apply()
 
-client= Client()
-chat_history = [{"role": "user", "content": ''}]  # Сбор информации для ИИ(История сообщений)
+client = Client(
+    provider = RetryProvider([
+            g4f.Provider.Liaobots,
+            g4f.Provider.GeekGpt,
+            g4f.Provider.Phind,
+            g4f.Provider.Raycast
+    ])
+  )
+chat_history = [{"role": "user", "content": 'Отвечай на русском языке'}]
 
 
-def send_request(message):         # Сообщение генерируется на базе искуственного интелекта
-    global chat_history            # Основываясь на вашем запросе, а также истории самих запросов
+def send_request(message):
+    global chat_history
     chat_history[0]["content"] += message + " "
-    print(chat_history)
+
     try:
         response = g4f.ChatCompletion.create(
-        model=g4f.models.default,
-        provider=g4f.Provider.OpenaiChat,
+        model=g4f.models.gpt_4,
         messages=chat_history
     )
     except Exception as err:
-        #time.sleep(120)
-        response = g4f.ChatCompletion.create(
-        model=g4f.models.default,
-        provider=g4f.Provider.OpenaiChat,
-        messages=chat_history
-    )
-    return (response)
+        print("Все провайдеры не отвечают, попробуйте пойзже")
+    print(chat_history)
     chat_history[0]["content"] += response + " "
+    return response
 
 
-# Наши кисточки - или же модули генерирующие картинки
-# Первая имеет более сложную систему создания картинки(за счет "рафинирования"
 from diffusers import DiffusionPipeline
 import torch
 
-
-# Первая кисточка
+# Кисточка
 def send_photo(message):
     base = DiffusionPipeline.from_pretrained(
         "stabilityai/stable-diffusion-xl-base-1.0", torch_dtype=torch.float16, variant="fp16", use_safetensors=True)
@@ -85,36 +91,48 @@ def send_photo(message):
     return image
 
 
-# Вторая кисточка (Образец который я использую, с целью экономии времени в тестаъ)
-def send_photo1(message):
-    pipe = DiffusionPipeline.from_pretrained("stabilityai/stable-diffusion-xl-base-1.0", torch_dtype=torch.float16,
-                                             use_safetensors=True, variant="fp16")
-    pipe.to("cuda")
-
-    prompt = message
-
-    images = pipe(prompt=prompt).images[0]
-    return images
-
-
 # Запуск бота, с зацикливанием, для постоянной работы
 @bot.message_handler(commands=['start'])
 def start(message):
-    bot.send_message(message.chat.id, 'Привет! Можешь спрашивать меня! Что тебя интересует?')
-
-
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    btn1 = types.KeyboardButton("👋 Поздороваться")
+    btn2 = types.KeyboardButton("❓ Задать вопрос")
+    markup.add(btn1, btn2)
+    bot.send_message(message.chat.id, 'Привет! Можешь спрашивать меня! Что тебя интересует?',reply_markup=markup)
+    
 @bot.message_handler(content_types=['text'])
-def get_text_messages(message):
-    inp = GoogleTranslator(source='auto', target='en').translate(message.text)
-    inp1 = "Tell us in detail about " + inp
-    out = GoogleTranslator(source='auto', target='ru').translate(send_request(inp1))
+def func(message):
+    if(message.text == "👋 Поздороваться"):
+        bot.send_message(message.chat.id, text="Привет! Спасибо что пользуешься мной!)")
+    elif(message.text == "❓ Задать вопрос"):
+        markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+        btn1 = types.KeyboardButton("Как меня зовут?")
+        btn2 = types.KeyboardButton("Что я могу?")
+        back = types.KeyboardButton("Вернуться в главное меню")
+        markup.add(btn1, btn2, back)
+        bot.send_message(message.chat.id, text="Задай мне вопрос", reply_markup=markup)
+    
+    elif(message.text == "Как меня зовут?"):
+        bot.send_message(message.chat.id, "Historical Events Bot")
+    
+    elif message.text == "Что я могу?":
+        bot.send_message(message.chat.id, text="Рассказать пользователю о любом историческом событии, а также изобразить его")
+    
+    elif (message.text == "Вернуться в главное меню"):
+        markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+        button1 = types.KeyboardButton("👋 Поздороваться")
+        button2 = types.KeyboardButton("❓ Задать вопрос")
+        markup.add(button1, button2)
+        bot.send_message(message.chat.id, text="Вы вернулись в главное меню", reply_markup=markup)
+    else:
+        inp = GoogleTranslator(source='auto', target='en').translate(message.text)
+        inp1 = "Tell us in detail about " + inp
+        out = GoogleTranslator(source='auto', target='ru').translate(send_request(inp1))
 
-    # Отправка текста
-    bot.send_message(message.chat.id, out)
-    # Первая кисточка - посложнее
-    # bot.send_photo(message.chat.id, send_photo(inp))
-    # Вторая кисточка - попроще
-    bot.send_photo(message.chat.id, send_photo1(inp))
-
-
+        # Отправка текста
+        bot.send_message(message.chat.id, out)
+        # Первая кисточка - посложнее
+        bot.send_photo(message.chat.id, send_photo(inp))
+        
+        
 bot.polling(none_stop=True, interval=0)
